@@ -10,8 +10,8 @@ type Session struct {
 	HomeServer  string
 	OnNewMsg    chan RoomMessage
 	OnJoin      chan string // When we find a new room
-	TxnID       int
-	stop        chan bool // stop the service
+	TxnID       string
+	Stop        chan bool // stop the service
 }
 
 // Start ..
@@ -20,16 +20,16 @@ func (session *Session) Start() {
 	Loop:
 		for {
 			select {
-			case <-session.stop:
+			case <-session.Stop:
 				break Loop
 			default:
 				err := session.Sync()
 				if err != nil {
-					switch {
-					case err.Error()[(len(err.Error())-11):] == "i/o timeout": // Just ignore this one
-					default:
-						log.Println(err)
-					}
+					//switch {
+					//case err.Error()[(len(err.Error())-11):] == "i/o timeout": // Just ignore this one
+					//default:
+					log.Println(err)
+					//}
 				}
 			}
 		}
@@ -38,7 +38,7 @@ func (session *Session) Start() {
 
 // Close closes everything down
 func (session *Session) Close() {
-	session.stop <- true
+	session.Stop <- true
 }
 
 // Init .
@@ -48,9 +48,11 @@ func Init(homeserver string) *Session {
 		OnNewMsg:  make(chan RoomMessage, 10),
 		OnJoin:    make(chan string, 10),
 		Rooms:     make(map[string]RoomInfo),
-		TxnID:     0,
-		stop:      make(chan bool),
+		TxnID:     "",
+		Stop:      make(chan bool),
 	}
+
+	session.generateRandomTxnID()
 
 	return &session
 }

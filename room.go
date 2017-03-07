@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -16,10 +15,11 @@ type RoomInfo struct {
 
 // RoomMessage - Message from a room
 type RoomMessage struct {
-	RoomID   string
-	RoomName string
-	Sender   string
-	Text     string
+	RoomID    string
+	RoomName  string
+	Sender    string
+	Text      string
+	Timestamp int
 }
 
 // RoomNameToID - get the room id from a room name
@@ -38,7 +38,7 @@ func (session *Session) SendToRoom(room, message string) error {
 	message = strings.Replace(message, "\"", "\\\"", -1) // fix for " in messages
 	jsTest := "{\"msgtype\":\"m.text\", \"body\":\"" + message + "\"}"
 
-	url := session.HomeServer + "/_matrix/client/r0/rooms/" + room + "/send/m.room.message/" + strconv.Itoa(session.TxnID) + "?access_token=" + session.AccessToken
+	url := session.HomeServer + "/_matrix/client/r0/rooms/" + room + "/send/m.room.message/" + session.TxnID + "?access_token=" + session.AccessToken
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer([]byte(jsTest)))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -48,7 +48,7 @@ func (session *Session) SendToRoom(room, message string) error {
 		return err
 	}
 
-	session.TxnID++
+	session.generateRandomTxnID()
 
 	var data map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&data)
